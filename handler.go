@@ -136,17 +136,16 @@ func (l *Logger) exportLog(c *gin.Context) {
 		return
 	}
 
-	// Build filename matching the convention used by the writer:
-	//   app  → "log_json_{date}.log"           in {LogBasePath}/nicolac/
-	//   else → "{logField}_log_json_{date}.log" in {LogBasePath}/{logField}/
-	logFieldPath := logField
-	fileName := "log_json_" + logData + ".log"
-	if logField == "app" {
-		logFieldPath = "nicolac"
+	// Build the file path matching the convention used by the writer.
+	// When logField matches DefaultLogField (default "app"), resolve to the
+	// configured LogPath + LogFileName (the default writer path).
+	// Otherwise: {LogBasePath}/{logField}/{logField}_log_json_{date}.log
+	var filePath string
+	if logField == l.config.DefaultLogField {
+		filePath = l.config.LogPath + "/" + l.config.LogFileName + "_json_" + logData + ".log"
 	} else {
-		fileName = logField + "_log_json_" + logData + ".log"
+		filePath = l.config.LogBasePath + "/" + logField + "/" + logField + "_log_json_" + logData + ".log"
 	}
-	filePath := l.config.LogBasePath + "/" + logFieldPath + "/" + fileName
 
 	cached, err := loadCached(filePath)
 	if err != nil {

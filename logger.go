@@ -38,6 +38,9 @@ func Init(config LoggerConfig) {
 	if config.LogBasePath == "" && config.LogPath != "" {
 		config.LogBasePath = filepath.Dir(config.LogPath)
 	}
+	if config.DefaultLogField == "" {
+		config.DefaultLogField = "app"
+	}
 	loc, err := time.LoadLocation("Europe/Rome")
 	if err != nil {
 		loc = time.UTC
