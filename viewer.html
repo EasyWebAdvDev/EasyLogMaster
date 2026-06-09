@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EasyLog Viewer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fb;--bg2:#ffffff;--bg3:#eef0f8;--bg4:#e4e8f4;
+  --border:#dde2f0;--border2:#c8ceea;
+  --text:#1a1f3c;--text2:#5a638e;--text3:#9098bf;
+  --accent:#6366f1;--accent2:#4f52d6;
+  --red:#dc2626;--orange:#ea580c;--blue:#2563eb;--gray:#6b7280;--green:#16a34a;
+  --json-str:#15803d;--json-num:#1d4ed8;--json-bool:#c2410c;--json-key:#6d28d9;
+  --red-bg:rgba(220,38,38,.1);--orange-bg:rgba(234,88,12,.1);
+  --blue-bg:rgba(37,99,235,.1);--gray-bg:rgba(107,114,128,.1);
+  --overlay-bg:rgba(244,246,251,.82);
+}
+body.dark{
+  --bg:#0d0f1a;--bg2:#141626;--bg3:#1c1f35;--bg4:#242844;
+  --border:#2a2d4a;--border2:#363b60;
+  --text:#e2e8f0;--text2:#7c85b3;--text3:#4a5180;
+  --accent:#6366f1;--accent2:#818cf8;
+  --red:#ef4444;--orange:#f97316;--blue:#3b82f6;--gray:#6b7280;--green:#22c55e;
+  --json-str:#86efac;--json-num:#93c5fd;--json-bool:#fdba74;--json-key:#c4b5fd;
+  --red-bg:rgba(239,68,68,.12);--orange-bg:rgba(249,115,22,.12);
+  --blue-bg:rgba(59,130,246,.12);--gray-bg:rgba(107,114,128,.12);
+  --overlay-bg:rgba(13,15,26,.82);
+}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* ── Login ─────────────────────────────────────────── */
+#login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999}
+.login-card{background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:40px 36px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.login-logo .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.login-logo h2{font-size:18px;font-weight:700;color:var(--text)}
+.login-card .sub{color:var(--text2);font-size:12px;margin-bottom:28px;padding-left:20px}
+.fgroup{margin-bottom:14px}
+.fgroup label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:5px}
+.fgroup input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);padding:9px 12px;font-size:13px;outline:none;transition:border .15s}
+.fgroup input:focus{border-color:var(--accent)}
+.login-btn{width:100%;background:var(--accent);border:none;border-radius:7px;color:#fff;padding:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px;transition:opacity .15s}
+.login-btn:hover{opacity:.88}
+.login-btn:disabled{opacity:.5;cursor:not-allowed}
+#login-err{color:var(--red);font-size:12px;margin-top:10px;min-height:16px}
+
+/* ── Header ─────────────────────────────────────────── */
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 18px;height:50px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.hlogo{display:flex;align-items:center;gap:8px}
+.hlogo .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.hlogo h1{font-size:15px;font-weight:700;color:var(--accent2);letter-spacing:-.2px}
+.hbadge{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:2px 9px;font-size:11px;color:var(--text2)}
+.sp{flex:1}
+.auto-badge{font-size:11px;color:var(--green);display:none}
+.hbtn{background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);padding:4px 11px;font-size:12px;cursor:pointer;transition:all .15s}
+.hbtn:hover{border-color:var(--text2);color:var(--text)}
+.hbtn.danger:hover{border-color:var(--red);color:var(--red)}
+/* ── Theme toggle ─────────────────────────────────────────── */
+.theme-sw{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.theme-sw input{display:none}
+.sw-track{position:relative;width:46px;height:26px;background:var(--border2);border-radius:13px;transition:background .2s;flex-shrink:0}
+.sw-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .22s cubic-bezier(.4,0,.2,1)}
+input:checked~.sw-track{background:var(--accent)}
+input:checked~.sw-track .sw-thumb{transform:translateX(20px)}
+.sw-icon{font-size:13px;line-height:1;transition:opacity .2s}
+.sw-sun{color:#f59e0b}
+.sw-moon{color:#94a3b8;opacity:.45}
+body.dark .sw-sun{opacity:.45}
+body.dark .sw-moon{opacity:1}
+
+/* ── Controls ─────────────────────────────────────────── */
+.controls{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;flex-shrink:0}
+.cg{display:flex;flex-direction:column;gap:3px}
+.cg label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3)}
+.cg select,.cg input[type=date],.cg input[type=text]{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);padding:5px 9px;font-size:12px;outline:none;height:30px;transition:border .15s}
+.cg select:focus,.cg input:focus{border-color:var(--accent)}
+.cg select{cursor:pointer}
+.cg input[type=text]{width:190px}
+.date-nav{display:flex;gap:4px;align-self:flex-end}
+.date-nav button{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text2);height:30px;padding:0 8px;font-size:11px;cursor:pointer;transition:all .15s}
+.date-nav button:hover{border-color:var(--accent);color:var(--accent2)}
+.rbtn{background:var(--accent);border:none;border-radius:6px;color:#fff;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;height:30px;transition:opacity .15s}
+.rbtn:hover{opacity:.88}
+.auto-wrap{display:flex;align-items:center;gap:5px}
+.auto-wrap label{font-size:12px;color:var(--text2);cursor:pointer}
+.auto-wrap input[type=checkbox]{accent-color:var(--accent);cursor:pointer}
+
+/* ── Stats bar ─────────────────────────────────────────── */
+.stats-bar{background:var(--bg);border-bottom:1px solid var(--border);padding:5px 18px;display:flex;gap:18px;align-items:center;flex-shrink:0;min-height:30px}
+.stat{font-size:11px;color:var(--text2)}
+.stat strong{color:var(--text)}
+.stat.se strong{color:var(--red)}
+.stat.sw strong{color:var(--orange)}
+.stat.si strong{color:var(--blue)}
+.lbar{flex:1;text-align:right}
+@keyframes spin{to{transform:rotate(360deg)}}
+#spinner{font-size:11px;color:var(--accent);display:none;align-items:center;gap:7px}
+.spin-ring{width:13px;height:13px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite;flex-shrink:0}
+#log-main{position:relative}
+#tbl-overlay{position:absolute;inset:0;background:var(--overlay-bg);backdrop-filter:blur(1px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:20;pointer-events:none}
+#tbl-overlay .ov-ring{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+#tbl-overlay .ov-text{font-size:12px;color:var(--text2);letter-spacing:.3px}
+
+/* ── Main layout ─────────────────────────────────────────── */
+.main{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* ── Table ─────────────────────────────────────────── */
+.tbl-wrap{flex:1;overflow-y:auto;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:700px}
+thead{position:sticky;top:0;background:var(--bg2);z-index:10}
+thead th{padding:8px 14px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);border-bottom:1px solid var(--border);font-weight:600;white-space:nowrap}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .08s}
+tbody tr:hover{background:var(--bg2)}
+tbody tr.sel{background:var(--bg3)!important;border-left:3px solid var(--accent)}
+tbody td{padding:8px 14px;vertical-align:middle}
+.td-time{font-family:monospace;font-size:11px;color:var(--text2);white-space:nowrap}
+.td-route{font-family:monospace;font-size:11px;color:var(--text2);white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis}
+.td-msg{max-width:0;min-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td-sql{font-family:monospace;font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dim{opacity:.3}
+
+/* Level badges */
+.lv{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
+.lv-ERROR{background:var(--red-bg);color:var(--red)}
+.lv-WARNING{background:var(--orange-bg);color:var(--orange)}
+.lv-INFO{background:var(--blue-bg);color:var(--blue)}
+.lv-DEBUG{background:var(--gray-bg);color:var(--gray)}
+
+/* ── Empty / Error ─────────────────────────────────────────── */
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;gap:10px;color:var(--text2)}
+.empty .icon{font-size:40px;opacity:.25}
+.empty p{font-size:14px}
+.empty small{font-size:11px;opacity:.6}
+
+/* ── Pagination ─────────────────────────────────────────── */
+.pagination{background:var(--bg2);border-top:1px solid var(--border);padding:8px 18px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pbtn{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;color:var(--text);padding:4px 10px;font-size:11px;cursor:pointer;transition:all .15s}
+.pbtn:hover:not(:disabled){border-color:var(--accent);color:var(--accent2)}
+.pbtn:disabled{opacity:.3;cursor:not-allowed}
+.pnums{display:flex;gap:3px}
+.pnum{background:transparent;border:1px solid transparent;border-radius:4px;color:var(--text2);padding:3px 7px;font-size:11px;cursor:pointer;transition:all .15s}
+.pnum:hover{border-color:var(--border2);color:var(--text)}
+.pnum.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pinfo{font-size:11px;color:var(--text2)}
+
+/* ── Detail panel ─────────────────────────────────────────── */
+#detail{width:460px;background:var(--bg2);border-left:1px solid var(--border);display:none;flex-direction:column;overflow:hidden;flex-shrink:0}
+#detail.open{display:flex}
+.dh{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.dh h3{font-size:13px;font-weight:600;flex:1}
+.daction{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--text2);padding:3px 8px;font-size:11px;cursor:pointer;transition:all .15s}
+.daction:hover{border-color:var(--accent);color:var(--accent2)}
+.daction.close:hover{border-color:var(--red);color:var(--red)}
+.db{flex:1;overflow-y:auto;padding:14px}
+.drow{margin-bottom:14px}
+.dlabel{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px}
+.dval{font-size:12px;word-break:break-all;line-height:1.5}
+.dval.mono{font-family:monospace;background:var(--bg3);padding:7px 9px;border-radius:5px;font-size:11px}
+.dval.empty{color:var(--text3);font-style:italic}
+
+/* ── JSON renderer ─────────────────────────────────────────── */
+.jc{font-family:monospace;font-size:11.5px;background:var(--bg3);border-radius:6px;padding:10px;overflow:auto;max-height:420px;line-height:1.6}
+.js{color:var(--json-str)}.jn{color:var(--json-num)}.jb{color:var(--json-bool)}.jnull{color:var(--text3)}.jk{color:var(--json-key)}.jbrace{color:var(--text2)}
+.jt-block{display:block}
+.jt{cursor:pointer;user-select:none;color:var(--accent2)}
+.jt::before{content:'▼ ';font-size:8px;color:var(--text3)}
+.jt.col::before{content:'▶ ';color:var(--text3)}
+.jinner{display:block;padding-left:16px}
+.jcol .jinner{display:none}
+.jcount{color:var(--text3);font-size:10px}
+
+/* ── Mode tabs ─────────────────────────────────────────── */
+.mode-tabs{display:flex;gap:3px}
+.mtab{background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);padding:4px 11px;font-size:12px;cursor:pointer;transition:all .15s}
+.mtab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* ── Order Tracker ─────────────────────────────────────── */
+#tracker-view{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.tbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;gap:10px;align-items:flex-end;flex-shrink:0;flex-wrap:wrap}
+.tbar .cg input[type=text]{width:280px}
+.tl-wrap{flex:1;overflow-y:auto;padding:28px 40px}
+.tl{position:relative;padding-left:36px;max-width:880px;margin:0 auto}
+.tl::before{content:'';position:absolute;left:10px;top:12px;bottom:12px;width:2px;background:var(--border2)}
+.tl-step{position:relative;margin-bottom:16px}
+.tl-dot{position:absolute;left:-36px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;border:2px solid;flex-shrink:0;top:7px;background:var(--bg2);z-index:1}
+.tl-dot.cat-success{color:var(--green);border-color:var(--green)}
+.tl-dot.cat-info{color:var(--blue);border-color:var(--blue)}
+.tl-dot.cat-error{color:var(--red);border-color:var(--red)}
+.tl-dot.cat-warn{color:var(--orange);border-color:var(--orange)}
+.tl-dot.cat-debug{color:var(--text3);border-color:var(--border2)}
+.tl-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;cursor:pointer;transition:border .12s}
+.tl-card:hover,.tl-card.open{border-color:var(--accent2)}
+.tl-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tl-time{font-family:monospace;font-size:11px;color:var(--text2);white-space:nowrap}
+.tl-phase{font-size:13px;font-weight:600;color:var(--text)}
+.tl-src{font-size:10px;text-transform:uppercase;letter-spacing:.4px;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:1px 8px;color:var(--text3)}
+.tl-msg{margin-top:5px;font-size:11.5px;color:var(--text2);font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tl-detail{display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+.tl-card.open .tl-detail{display:block}
+.tl-empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.tl-empty .icon{font-size:36px;margin-bottom:10px}
+.tl-spinner{text-align:center;padding:40px;color:var(--accent);font-size:12px}
+.tl-note{font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 12px;margin-bottom:18px;max-width:880px;margin-left:auto;margin-right:auto}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo"><span class="logo-dot"></span><h2>EasyLog Viewer</h2></div>
+    <p class="sub">Accedi per visualizzare i log</p>
+    <div class="fgroup"><label>Username</label><input id="lu" type="text" autocomplete="username" placeholder="username"></div>
+    <div class="fgroup"><label>Password</label><input id="lp" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Accedi</button>
+    <div id="login-err"></div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" style="display:none;flex-direction:column;height:100vh">
+
+  <header>
+    <div class="hlogo"><span class="dot"></span><h1>EasyLog Viewer</h1></div>
+    <span class="hbadge" id="src-badge">—</span>
+    <div class="mode-tabs">
+      <button class="mtab active" id="tab-log" onclick="switchMode('log')">Log</button>
+      <button class="mtab" id="tab-tracker" onclick="switchMode('tracker')">Traccia Ordine</button>
+    </div>
+    <div class="sp"></div>
+    <span class="auto-badge" id="auto-badge">● auto-refresh</span>
+    <label class="theme-sw" title="Light / Dark mode">
+      <input type="checkbox" id="theme-chk" onchange="toggleTheme()">
+      <span class="sw-icon sw-sun">☀</span>
+      <span class="sw-track"><span class="sw-thumb"></span></span>
+      <span class="sw-icon sw-moon">☾</span>
+    </label>
+    <button class="hbtn" onclick="exportPage()">⬇ Export</button>
+    <button class="hbtn danger" onclick="doLogout()">Logout</button>
+  </header>
+
+  <div class="controls" id="log-controls">
+    <div class="cg"><label>Sorgente</label><select id="c-src" onchange="onSrcChange()"></select></div>
+    <div class="cg"><label>Data</label><input id="c-date" type="date" onchange="resetLoad()"></div>
+    <div class="date-nav">
+      <button onclick="shiftDate(-1)" title="Giorno precedente">◀</button>
+      <button onclick="goToday()" title="Oggi">Oggi</button>
+      <button onclick="shiftDate(1)" title="Giorno successivo">▶</button>
+    </div>
+    <div class="cg"><label>Livello</label>
+      <select id="c-level" onchange="resetLoad()">
+        <option value="">Tutti</option>
+        <option value="ERROR">ERROR</option>
+        <option value="WARNING">WARNING</option>
+        <option value="INFO">INFO</option>
+        <option value="DEBUG">DEBUG</option>
+      </select>
+    </div>
+    <div class="cg"><label>Cerca nel messaggio</label><input id="c-search" type="text" placeholder="Testo libero..." oninput="debSearch()"></div>
+    <div class="cg"><label>Ordine</label>
+      <select id="c-order" onchange="resetLoad()">
+        <option value="DESC">Più recenti prima</option>
+        <option value="ASC">Meno recenti prima</option>
+      </select>
+    </div>
+    <div class="cg"><label>Per pagina</label>
+      <select id="c-size" onchange="resetLoad()">
+        <option value="25">25</option>
+        <option value="50" selected>50</option>
+        <option value="100">100</option>
+        <option value="200">200</option>
+      </select>
+    </div>
+    <button class="rbtn" onclick="loadLogs()">↻ Aggiorna</button>
+    <div class="auto-wrap">
+      <input type="checkbox" id="c-auto" onchange="toggleAuto()">
+      <label for="c-auto">Auto (30s)</label>
+    </div>
+  </div>
+
+  <div class="stats-bar" id="log-stats">
+    <div class="stat">Totale: <strong id="st-tot">—</strong></div>
+    <div class="stat se">Errori: <strong id="st-err">—</strong></div>
+    <div class="stat sw">Avvisi: <strong id="st-warn">—</strong></div>
+    <div class="stat si">Info: <strong id="st-info">—</strong></div>
+    <div class="lbar"><span id="spinner"><span class="spin-ring"></span>Caricamento…</span></div>
+  </div>
+
+  <div class="main" id="log-main">
+    <div id="tbl-overlay">
+      <div class="ov-ring"></div>
+      <span class="ov-text">Caricamento…</span>
+    </div>
+    <div class="tbl-wrap" id="tbl-wrap">
+      <div id="empty" class="empty" style="display:none">
+        <div class="icon">📋</div>
+        <p id="empty-msg">Nessun log trovato</p>
+        <small>Prova a cambiare i filtri o la data</small>
+      </div>
+      <table id="tbl" style="display:none">
+        <thead>
+          <tr>
+            <th style="width:145px">Timestamp</th>
+            <th style="width:85px">Livello</th>
+            <th style="width:165px">Route</th>
+            <th>Messaggio</th>
+            <th style="width:150px">SQL</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="detail">
+      <div class="dh">
+        <h3>Dettaglio entry</h3>
+        <button class="daction" onclick="copyEntry()">Copia JSON</button>
+        <button class="daction close" onclick="closeDetail()">✕</button>
+      </div>
+      <div class="db" id="db"></div>
+    </div>
+  </div>
+
+  <div class="pagination" id="log-pag">
+    <button class="pbtn" id="btn-prev" onclick="goPage(curPage-1)">← Prec</button>
+    <div class="pnums" id="pnums"></div>
+    <button class="pbtn" id="btn-next" onclick="goPage(curPage+1)">Succ →</button>
+    <div class="sp"></div>
+    <span class="pinfo" id="pinfo"></span>
+  </div>
+
+  <!-- Order Tracker view -->
+  <div id="tracker-view">
+    <div class="tbar">
+      <div class="cg">
+        <label>ID Ordine o Source</label>
+        <input id="t-query" type="text" placeholder="Es: 137625 oppure online_87d2…"
+               onkeydown="if(event.key==='Enter') trackOrder()">
+      </div>
+      <div class="cg">
+        <label>Data</label>
+        <input id="t-date" type="date">
+      </div>
+      <div class="date-nav">
+        <button onclick="shiftTDate(-1)" title="Giorno precedente">◀</button>
+        <button onclick="initTDate()" title="Oggi">Oggi</button>
+        <button onclick="shiftTDate(1)" title="Giorno successivo">▶</button>
+      </div>
+      <button class="rbtn" onclick="trackOrder()">Cerca</button>
+    </div>
+    <div class="tl-wrap">
+      <div class="tl-empty" id="tl-empty">
+        <div class="icon">🔍</div>
+        <p>Inserisci un ID ordine o una source e premi Cerca</p>
+      </div>
+      <div id="tl-spinner" class="tl-spinner" style="display:none">Ricerca in corso…</div>
+      <div id="tl" class="tl" style="display:none"></div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<script>
+const LOGIN_URL      = '{{LOGIN_URL}}';
+const LOG_API_BASE   = '{{LOG_API_BASE}}';
+const SOURCES        = {{SOURCES_JSON}};
+const ALLOWED_ROLES  = {{ALLOWED_ROLES_JSON}};
+const ROLE_CLAIM_KEY = '{{ROLE_CLAIM_KEY}}';
+
+// ── State ──────────────────────────────────────────────────────
+let curPage = 0, total = 0, curData = [], selEntry = null, autoTimer = null, debTimer = null;
+
+// ── Theme ──────────────────────────────────────────────────────
+function initTheme() {
+  const dark = localStorage.getItem('egl_theme') === 'dark';
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('theme-chk').checked = dark;
+}
+function toggleTheme() {
+  const dark = document.getElementById('theme-chk').checked;
+  document.body.classList.toggle('dark', dark);
+  localStorage.setItem('egl_theme', dark ? 'dark' : 'light');
+}
+
+// ── Auth ──────────────────────────────────────────────────────
+function decodeJwt(token) {
+  try {
+    const payload = token.split('.')[1];
+    return JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+  } catch(e) { return null; }
+}
+function isRoleAllowed(token) {
+  if (!ALLOWED_ROLES.length) return true;
+  const p = decodeJwt(token);
+  return ALLOWED_ROLES.includes(String(p ? (p[ROLE_CLAIM_KEY] ?? '') : ''));
+}
+const tok = () => localStorage.getItem('egl_tok');
+const setTok = t => localStorage.setItem('egl_tok', t);
+const clrTok = () => localStorage.removeItem('egl_tok');
+
+async function doLogin() {
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-err');
+  const u = document.getElementById('lu').value.trim();
+  const p = document.getElementById('lp').value;
+  errEl.textContent = '';
+  if (!u || !p) { errEl.textContent = 'Inserisci username e password'; return; }
+  btn.disabled = true; btn.textContent = 'Accesso…';
+  try {
+    const r = await fetch(LOGIN_URL, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username:u, password:p})});
+    if (!r.ok) { errEl.textContent = 'Credenziali non valide'; return; }
+    const d = await r.json();
+    const t = d.accessToken || d.access_token || d.token;
+    if (!t) { errEl.textContent = 'Risposta inattesa dal server'; return; }
+    if (!isRoleAllowed(t)) {
+      errEl.textContent = 'Accesso non autorizzato per questo ruolo';
+      return;
+    }
+    setTok(t);
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    loadLogs();
+  } catch(e) { errEl.textContent = 'Errore connessione: ' + e.message; }
+  finally { btn.disabled = false; btn.textContent = 'Accedi'; }
+}
+
+function doLogout() {
+  clrTok(); clearInterval(autoTimer);
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-overlay').style.display = 'flex';
+  document.getElementById('c-auto').checked = false;
+  document.getElementById('auto-badge').style.display = 'none';
+}
+
+// ── Init ──────────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  initTheme();
+  const sel = document.getElementById('c-src');
+  SOURCES.forEach(s => {
+    const o = document.createElement('option');
+    o.value = s;
+    o.textContent = s === 'app' ? 'App (nicolac)' : s.charAt(0).toUpperCase() + s.slice(1);
+    sel.appendChild(o);
+  });
+  document.getElementById('c-date').value = todayStr();
+  initTDate();
+  document.getElementById('lu').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('lp').focus(); });
+  document.getElementById('lp').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  document.addEventListener('keydown', e => {
+    if (e.key==='Escape') closeDetail();
+    if (e.key==='r' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') loadLogs();
+    if (e.key==='ArrowLeft' && !e.ctrlKey && document.activeElement.tagName !== 'INPUT') { shiftDate(-1); }
+    if (e.key==='ArrowRight' && !e.ctrlKey && document.activeElement.tagName !== 'INPUT') { shiftDate(1); }
+  });
+  if (tok()) {
+    if (!isRoleAllowed(tok())) { clrTok(); }
+    else { document.getElementById('login-overlay').style.display='none'; document.getElementById('app').style.display='flex'; loadLogs(); }
+  }
+});
+
+// ── Controls helpers ──────────────────────────────────────────
+function onSrcChange() { curPage=0; closeDetail(); loadLogs(); updateSrcBadge(); }
+function resetLoad() { curPage=0; loadLogs(); }
+function debSearch() { clearTimeout(debTimer); debTimer = setTimeout(()=>{ curPage=0; loadLogs(); }, 420); }
+function todayStr() { return localDateStr(new Date()); }
+function localDateStr(dt) {
+  return dt.getFullYear() + '-' +
+    String(dt.getMonth() + 1).padStart(2, '0') + '-' +
+    String(dt.getDate()).padStart(2, '0');
+}
+function shiftDate(d) {
+  const v = document.getElementById('c-date').value;
+  const [y, m, day] = v.split('-').map(Number);
+  const dt = new Date(y, m - 1, day + d);
+  document.getElementById('c-date').value = localDateStr(dt);
+  resetLoad();
+}
+function goToday() { document.getElementById('c-date').value = localDateStr(new Date()); resetLoad(); }
+function updateSrcBadge() {
+  const s = document.getElementById('c-src').value;
+  document.getElementById('src-badge').textContent = s === 'app' ? 'nicolac' : s;
+}
+
+// ── API ──────────────────────────────────────────────────────
+function buildURL() {
+  const src    = document.getElementById('c-src').value;
+  const date   = document.getElementById('c-date').value.replace(/-/g,'');
+  const level  = document.getElementById('c-level').value;
+  const search = document.getElementById('c-search').value;
+  const order  = document.getElementById('c-order').value;
+  const size   = +document.getElementById('c-size').value;
+  let url = `${LOG_API_BASE}/${src}/${date}?page=${curPage}&page_size=${size}&order=${order}`;
+  if (level)  url += `&level=${level}`;
+  if (search) url += `&filter=${encodeURIComponent(search)}`;
+  return url;
+}
+
+async function loadLogs() {
+  if (!tok()) return;
+  setSpinner(true);
+  try {
+    const r = await fetch(buildURL(), {headers:{'Authorization':'Bearer '+tok()}});
+    if (r.status===401 || r.status===403) { doLogout(); return; }
+    if (r.status===204) { renderTable([]); setStats([], 0); renderPag(); return; }
+    if (!r.ok) { const e=await r.json().catch(()=>({msg:'Errore sconosciuto'})); showErr(e.msg); return; }
+    total    = parseInt(r.headers.get('X-Total-Count')||'0');
+    curData  = await r.json() || [];
+    renderTable(curData);
+    setStats(curData, total);
+    renderPag();
+    updateSrcBadge();
+  } catch(e) { showErr('Errore connessione: '+e.message); }
+  finally { setSpinner(false); }
+}
+
+// ── Render table ──────────────────────────────────────────────
+function renderTable(entries) {
+  const tbody = document.getElementById('tbody');
+  const tbl   = document.getElementById('tbl');
+  const empty = document.getElementById('empty');
+  const emsg  = document.getElementById('empty-msg');
+  tbody.innerHTML = '';
+  if (!entries || !entries.length) {
+    tbl.style.display='none'; empty.style.display='flex';
+    if (emsg) { emsg.style.color=''; emsg.textContent = 'Nessun log trovato'; }
+    return;
+  }
+  tbl.style.display=''; empty.style.display='none';
+  entries.forEach((e,i) => {
+    const tr = document.createElement('tr');
+    tr.dataset.i = i;
+    if (selEntry && selEntry._idx === i) tr.classList.add('sel');
+    const ts  = fmtTs(e.timestamp);
+    const lvc = 'lv lv-'+(e.level||'DEBUG');
+    const msg = esc(e.message||'');
+    const sql = esc(e.sql||'');
+    const rt  = esc(e.route||'');
+    tr.innerHTML =
+      `<td class="td-time" title="${esc(e.timestamp||'')}">${ts}</td>`+
+      `<td><span class="${lvc}">${esc(e.level||'')}</span></td>`+
+      `<td class="td-route" title="${rt}">${rt||'<span class="dim">—</span>'}</td>`+
+      `<td class="td-msg" title="${msg}">${msg||'<span class="dim">—</span>'}</td>`+
+      `<td class="td-sql" title="${sql}">${sql||'<span class="dim">—</span>'}</td>`;
+    tr.addEventListener('click', () => showDetail(e, tr, i));
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Stats ──────────────────────────────────────────────────────
+function setStats(entries, tot) {
+  document.getElementById('st-tot').textContent  = tot;
+  document.getElementById('st-err').textContent  = entries.filter(e=>e.level==='ERROR').length;
+  document.getElementById('st-warn').textContent = entries.filter(e=>e.level==='WARNING').length;
+  document.getElementById('st-info').textContent = entries.filter(e=>e.level==='INFO').length;
+}
+
+// ── Pagination ──────────────────────────────────────────────────
+function renderPag() {
+  const size = +document.getElementById('c-size').value;
+  const pages = Math.ceil(total/size) || 1;
+  const s = curPage*size+1, e = Math.min((curPage+1)*size, total);
+  document.getElementById('btn-prev').disabled = curPage===0;
+  document.getElementById('btn-next').disabled = curPage>=pages-1;
+  document.getElementById('pinfo').textContent = total>0 ? `${s}–${e} di ${total}` : 'Nessun risultato';
+  const nums = document.getElementById('pnums'); nums.innerHTML='';
+  let sp=Math.max(0,curPage-3), ep=Math.min(pages-1,sp+6);
+  if(ep-sp<6) sp=Math.max(0,ep-6);
+  if(sp>0){addPnum(nums,0,'1');if(sp>1){const d=document.createElement('span');d.className='pinfo';d.textContent='…';nums.appendChild(d);}}
+  for(let p=sp;p<=ep;p++) addPnum(nums,p,p+1);
+  if(ep<pages-1){if(ep<pages-2){const d=document.createElement('span');d.className='pinfo';d.textContent='…';nums.appendChild(d);}addPnum(nums,pages-1,pages);}
+}
+function addPnum(container,p,label){
+  const b=document.createElement('button');
+  b.className='pnum'+(p===curPage?' active':'');
+  b.textContent=label; b.onclick=()=>goPage(p); container.appendChild(b);
+}
+function goPage(p){
+  const size=+document.getElementById('c-size').value, pages=Math.ceil(total/size)||1;
+  if(p<0||p>=pages) return; curPage=p; loadLogs(); document.getElementById('tbl-wrap').scrollTop=0;
+}
+
+// ── Detail panel ──────────────────────────────────────────────
+function showDetail(entry, tr, idx) {
+  document.querySelectorAll('#tbody tr').forEach(r=>r.classList.remove('sel'));
+  tr.classList.add('sel');
+  entry._idx = idx; selEntry = entry;
+  const panel = document.getElementById('detail');
+  panel.classList.add('open');
+  const db = document.getElementById('db');
+  let html = '';
+  html += drow('Timestamp', `<div class="dval mono">${esc(entry.timestamp||'—')}</div>`);
+  html += drow('Livello', `<span class="lv lv-${entry.level||'DEBUG'}">${esc(entry.level||'—')}</span>`);
+  html += drow('Route', `<div class="dval mono">${esc(entry.route||'—')}</div>`);
+  html += drow('Messaggio', `<div class="dval">${esc(entry.message||'—')}</div>`);
+  if(entry.sql) html += drow('SQL', `<div class="dval mono">${esc(entry.sql)}</div>`);
+  const jr = entry.jsonResponse;
+  if(jr !== null && jr !== undefined && jr !== '') {
+    html += drow('JSON Response', `<div class="jc">${renderJSON(jr,0)}</div>`);
+  }
+  db.innerHTML = html;
+  // Bind toggle listeners for collapsible JSON objects/arrays
+  db.querySelectorAll('.jt').forEach(el=>{
+    el.addEventListener('click', e=>{
+      e.stopPropagation();
+      el.classList.toggle('col');             // arrow direction
+      el.parentElement.classList.toggle('jcol'); // hide/show content
+    });
+  });
+}
+function drow(label, content){
+  return `<div class="drow"><div class="dlabel">${label}</div>${content}</div>`;
+}
+function closeDetail(){
+  document.getElementById('detail').classList.remove('open');
+  document.querySelectorAll('#tbody tr').forEach(r=>r.classList.remove('sel'));
+  selEntry=null;
+}
+function copyEntry(){
+  if(!selEntry) return;
+  const copy = {...selEntry}; delete copy._idx;
+  navigator.clipboard.writeText(JSON.stringify(copy,null,2)).then(()=>{
+    const b=document.querySelector('.daction'); b.textContent='✓ Copiato!';
+    setTimeout(()=>b.textContent='Copia JSON',2000);
+  });
+}
+
+// ── JSON renderer ──────────────────────────────────────────────
+function renderJSON(val, depth) {
+  if(depth>8) return '<span class="jnull">…</span>';
+  if(val===null) return '<span class="jnull">null</span>';
+  const t=typeof val;
+  if(t==='boolean') return `<span class="jb">${val}</span>`;
+  if(t==='number')  return `<span class="jn">${val}</span>`;
+  if(t==='string') {
+    if(depth<6 && (val.startsWith('{')||val.startsWith('['))) {
+      try{ return renderJSON(JSON.parse(val),depth); }catch(e){}
+    }
+    return `<span class="js">"${esc(val)}"</span>`;
+  }
+  if(Array.isArray(val)) {
+    if(!val.length) return '<span class="jbrace">[]</span>';
+    const items = val.map(v=>`<span class="jinner">${renderJSON(v,depth+1)},</span>`).join('\n');
+    return `<span class="jt-block"><span class="jt">Array(${val.length})</span><span class="jbrace"> [</span><span class="jinner">${items}</span><span class="jbrace">]</span></span>`;
+  }
+  if(t==='object') {
+    const keys=Object.keys(val);
+    if(!keys.length) return '<span class="jbrace">{}</span>';
+    const items = keys.map(k=>`<span class="jinner"><span class="jk">"${esc(k)}"</span><span class="jbrace">: </span>${renderJSON(val[k],depth+1)}</span>`).join('\n');
+    return `<span class="jt-block"><span class="jt">Object(${keys.length})</span><span class="jbrace"> {</span><span class="jinner">${items}</span><span class="jbrace">}</span></span>`;
+  }
+  return esc(String(val));
+}
+
+// ── Auto-refresh ──────────────────────────────────────────────
+function toggleAuto() {
+  const on = document.getElementById('c-auto').checked;
+  document.getElementById('auto-badge').style.display = on?'':'none';
+  if(on){ autoTimer=setInterval(loadLogs,30000); } else { clearInterval(autoTimer); }
+}
+
+// ── Export ──────────────────────────────────────────────────────
+function exportPage() {
+  if(!curData||!curData.length){ alert('Nessun dato da esportare'); return; }
+  const src  = document.getElementById('c-src').value;
+  const date = document.getElementById('c-date').value;
+  const blob = new Blob([JSON.stringify(curData,null,2)],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download=`log_${src}_${date}_p${curPage+1}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Utilities ──────────────────────────────────────────────────
+function showErr(msg) {
+  document.getElementById('tbl').style.display='none';
+  const em=document.getElementById('empty');
+  em.style.display='flex';
+  em.innerHTML=`<div class="icon">⚠️</div><p id="empty-msg" style="color:var(--red)">${esc(msg)}</p><small>Controlla i filtri e riprova</small>`;
+}
+function setSpinner(v){
+  document.getElementById('spinner').style.display = v ? 'flex' : 'none';
+  document.getElementById('tbl-overlay').style.display = v ? 'flex' : 'none';
+}
+function fmtTs(ts){
+  if(!ts) return '—';
+  try{
+    const d=new Date(ts);
+    const date=d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'});
+    const time=d.toLocaleTimeString('it-IT',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const ms=String(d.getMilliseconds()).padStart(3,'0');
+    return `<span style="color:var(--text3)">${date}</span> ${time}<span style="color:var(--text3)">.${ms}</span>`;
+  }catch(e){return ts.slice(0,19)||ts;}
+}
+function esc(s){ if(typeof s!=='string') return ''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── Order Tracker ──────────────────────────────────────────────
+function switchMode(mode) {
+  const isLog = mode === 'log';
+  document.getElementById('tab-log').classList.toggle('active', isLog);
+  document.getElementById('tab-tracker').classList.toggle('active', !isLog);
+  ['log-controls','log-stats','log-main','log-pag'].forEach(id => {
+    document.getElementById(id).style.display = isLog ? '' : 'none';
+  });
+  document.getElementById('tracker-view').style.display = isLog ? 'none' : 'flex';
+  if (!isLog) document.getElementById('t-query').focus();
+}
+
+function initTDate() {
+  document.getElementById('t-date').value = localDateStr(new Date());
+}
+
+function shiftTDate(d) {
+  const v = document.getElementById('t-date').value;
+  const [y, m, day] = v.split('-').map(Number);
+  const dt = new Date(y, m - 1, day + d);
+  document.getElementById('t-date').value = localDateStr(dt);
+}
+
+const ORDER_PHASES = [
+  { r:'ORDER',           m:'ObjCreateOrder',          label:'Creato',               cat:'success', icon:'✓' },
+  { r:'ORDER',           m:'ObjUpdateOrder',           label:'Modificato',           cat:'info',    icon:'✎' },
+  { r:'ORDER',           m:'ObjUpdateStatus',          label:'Stato aggiornato',     cat:'info',    icon:'↺' },
+  { r:'ORDER',           m:'ObjDeleteOrder',           label:'Eliminato',            cat:'error',   icon:'✗' },
+  { r:'ORDER',           m:'SendOrder',                label:'Invio da API',         cat:'info',    icon:'→' },
+  { r:'ORDER',           m:'ObjInsertOrUpdateOrder',   label:'Sincronizzato',        cat:'info',    icon:'⇅' },
+  { r:'ORDER',           m:'InsertOrUpdateOrderFull',  label:'Sincronizzato (full)', cat:'info',    icon:'⇅' },
+  { r:'ORDER_ROW',       m:'ObjCreateOrderRow',        label:'Righe aggiunte',       cat:'info',    icon:'+' },
+  { r:'ORDER_ROW',       m:'ObjDeleteOrderRow',        label:'Righe eliminate',      cat:'warn',    icon:'−' },
+  { r:'BRIDGE_SEND_MEXAL', m:'ExecuteBridge update',   label:'Inviato a Mexal',      cat:'success', icon:'✓' },
+  { r:'BRIDGE_SEND_MEXAL', m:'save orderSplit',        label:'Ordine splittato',     cat:'info',    icon:'⊕' },
+  { r:'BRIDGE_SEND_MEXAL', m:'ObjCreateOrder - save',  label:'Ordine splittato',    cat:'info',    icon:'⊕' },
+];
+
+function classifyStep(entry) {
+  const msg   = entry.message || '';
+  const route = entry.route   || '';
+  for (const p of ORDER_PHASES) {
+    if (route === p.r && msg.includes(p.m)) return { label: p.label, cat: p.cat, icon: p.icon };
+  }
+  if (entry.level === 'ERROR')   return { label: route || 'Errore', cat: 'error', icon: '✗' };
+  if (entry.level === 'WARNING') return { label: route || 'Avviso', cat: 'warn',  icon: '⚠' };
+  if (entry.level === 'INFO')    return { label: route || 'Info',   cat: 'info',  icon: '●' };
+  return { label: route || 'Debug', cat: 'debug', icon: '○' };
+}
+
+async function fetchTrackerSource(source, date, query) {
+  const dateKey = date.replace(/-/g, '');
+  const url = `${LOG_API_BASE}/${source}/${dateKey}?page=0&page_size=500&order=ASC&filter=${encodeURIComponent(query)}`;
+  try {
+    const r = await fetch(url, { headers: { 'Authorization': 'Bearer ' + tok() } });
+    if (r.status === 204 || !r.ok) return [];
+    const data = await r.json();
+    return (data || []).map(e => ({ ...e, _source: source }));
+  } catch(e) { return []; }
+}
+
+function filterRelevantEntries(entries, query) {
+  const isNumeric = /^\d+$/.test(query);
+  if (!isNumeric) return entries;
+  // Per ID numerici: l'ID non deve essere circondato da altre cifre
+  const re = new RegExp('(?<!\\d)' + query + '(?!\\d)');
+  return entries.filter(entry => {
+    if (re.test(entry.message || '')) return true;
+    const jr = entry.jsonResponse;
+    if (jr && typeof jr === 'object' && !Array.isArray(jr) && String(jr.id) === query) return true;
+    return false;
+  });
+}
+
+async function trackOrder() {
+  const query = document.getElementById('t-query').value.trim();
+  const date  = document.getElementById('t-date').value;
+  if (!query) { document.getElementById('t-query').focus(); return; }
+
+  document.getElementById('tl-empty').style.display   = 'none';
+  document.getElementById('tl-spinner').style.display = '';
+  document.getElementById('tl').style.display         = 'none';
+
+  try {
+    const [appEntries, bridgeEntries] = await Promise.all([
+      fetchTrackerSource('app',    date, query),
+      fetchTrackerSource('bridge', date, query),
+    ]);
+    const all = filterRelevantEntries(
+      [...appEntries, ...bridgeEntries].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)),
+      query
+    );
+    document.getElementById('tl-spinner').style.display = 'none';
+    renderTimeline(all, query);
+  } catch(e) {
+    document.getElementById('tl-spinner').style.display = 'none';
+    const em = document.getElementById('tl-empty');
+    em.style.display = '';
+    em.innerHTML = `<div class="icon">⚠</div><p style="color:var(--red)">Errore: ${esc(e.message)}</p>`;
+  }
+}
+
+function renderTimeline(steps, query) {
+  const tl = document.getElementById('tl');
+  if (!steps.length) {
+    tl.style.display = 'none';
+    const em = document.getElementById('tl-empty');
+    em.style.display = '';
+    em.innerHTML = `<div class="icon">📋</div><p>Nessun log trovato per "<strong>${esc(query)}</strong>"</p><small>Prova un'altra data o controlla l'ID</small>`;
+    return;
+  }
+  tl._steps = steps;
+  tl.style.display = '';
+  document.getElementById('tl-empty').style.display = 'none';
+
+  let html = `<div class="tl-note">Trovati <strong>${steps.length}</strong> eventi — alcuni potrebbero non essere correlati all'ordine cercato</div>`;
+  steps.forEach((entry, i) => {
+    const phase   = classifyStep(entry);
+    const d       = entry.timestamp ? new Date(entry.timestamp) : null;
+    const tsDate  = d ? d.toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit'}) : '';
+    const tsTime  = d ? d.toLocaleTimeString('it-IT',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+    const lvCls   = 'lv lv-'+(entry.level||'DEBUG');
+    const msg     = esc(entry.message||'');
+    const src     = entry._source === 'app' ? 'app' : 'bridge';
+    const jr      = entry.jsonResponse;
+    const hasDet  = entry.sql || (jr !== null && jr !== undefined && jr !== '' && jr !== '""');
+    html += `
+    <div class="tl-step">
+      <div class="tl-dot cat-${phase.cat}">${phase.icon}</div>
+      <div class="tl-card" onclick="toggleTlCard(this,${i})" id="tlc-${i}">
+        <div class="tl-head">
+          <span class="tl-time">${tsDate} ${tsTime}</span>
+          <span class="tl-phase">${esc(phase.label)}</span>
+          <span class="tl-src">${src}</span>
+          <span class="${lvCls}">${esc(entry.level||'')}</span>
+        </div>
+        <div class="tl-msg" title="${msg}">${msg||'<span class="dim">—</span>'}</div>
+        ${hasDet ? `<div class="tl-detail" id="tld-${i}"></div>` : ''}
+      </div>
+    </div>`;
+  });
+  tl.innerHTML = html;
+}
+
+function toggleTlCard(card, i) {
+  const wasOpen = card.classList.contains('open');
+  card.classList.toggle('open', !wasOpen);
+  if (!wasOpen) {
+    const det = document.getElementById('tld-'+i);
+    if (!det || det._rendered) return;
+    const entry = document.getElementById('tl')._steps[i];
+    let html = '';
+    if (entry.sql) html += drow('SQL', `<div class="dval mono">${esc(entry.sql)}</div>`);
+    const jr = entry.jsonResponse;
+    if (jr !== null && jr !== undefined && jr !== '' && jr !== '""') {
+      html += drow('JSON Response', `<div class="jc">${renderJSON(jr,0)}</div>`);
+    }
+    det.innerHTML = html || `<div style="color:var(--text3);font-size:12px">Nessun dettaglio aggiuntivo</div>`;
+    det._rendered = true;
+    det.querySelectorAll('.jt').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        el.classList.toggle('col');
+        el.parentElement.classList.toggle('jcol');
+      });
+    });
+  }
+}
+</script>
+</body>
+</html>
